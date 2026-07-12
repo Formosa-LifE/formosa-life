@@ -98,7 +98,7 @@ export default function Home() {
         >
           每一個<span className="text-[#6F6F6F] italic">分享,</span>
           <br className="hidden sm:block" />
-          都是一 <span className="text-[#6F6F6F] italic">種傳承.</span>
+          都是一種 <span className="text-[#6F6F6F] italic">傳承.</span>
         </h1>
 
         <p className="font-body text-base sm:text-lg max-w-2xl mt-8 leading-relaxed text-[#6F6F6F] animate-fade-rise-delay">
