@@ -30,7 +30,7 @@ export interface ResourceCategory {
 export const resourceCategories: ResourceCategory[] = [
   {
     title: '教學講義',
-    description: '各章節探究式學習講義與學習單，含學生版與教師版。',
+    description: '各章節學習講義。',
     driveUrl: 'https://drive.google.com/drive/folders/你的資料夾ID',
     emoji: '📖',
   },
@@ -41,8 +41,8 @@ export const resourceCategories: ResourceCategory[] = [
     emoji: '🖥️',
   },
   {
-    title: '歷屆試題',
-    description: '學測、分科測驗歷屆試題整理與詳解。',
+    title: '學習資源',
+    description: '各種學習資源整理。',
     driveUrl: 'https://drive.google.com/drive/folders/你的資料夾ID',
     emoji: '✏️',
   },
@@ -70,12 +70,6 @@ export const essays: Essay[] = [
     content:
       '這個網站終於上線了。\n\n多年來累積的講義、簡報與試題整理，一直散落在雲端硬碟的各個角落。現在，它們有了一個家。\n\n每一個分享，都是一種傳承。希望這裡的資源，能陪伴更多好學的心靈。',
   },
-  {
-    date: '2026-07-01',
-    title: '範例文章：把這段換成你的文字',
-    content:
-      '打開 src/data/site.ts，找到 essays 這個區塊，照著格式新增一篇文章即可。\n\n記得最新的文章放在最上面。',
-  },
 ];
 
 // ------------------------------------------------------------
@@ -84,9 +78,9 @@ export const essays: Essay[] = [
 export const about = {
   title: '關於 Formosa LifE',
   paragraphs: [
-    '您好，我是 sing，任教於嘉義女中的生物科教師。',
-    'Formosa LifE 是我用來分享教學資源與學習心得的園地。這裡有多年累積的探究式教學講義、課堂簡報、歷屆試題整理，以及我對教育與生命科學的隨筆。',
-    '「學」與「思」是這裡的核心精神——透過提問引導思考，透過分享延續傳承。歡迎自由取用這些資源，也歡迎與我交流。',
+    '您好，我是 LifE。',
+    'Formosa LifE 是我用來分享教學資源與學習心得的園地。這裡有多年累積的教學講義、課堂簡報、歷屆試題整理，以及我對生活的隨筆。',
+    '「分享」是這裡的核心精神——透過分享延續傳承。歡迎自由取用這些資源，也歡迎與我交流。',
   ],
 };
 
