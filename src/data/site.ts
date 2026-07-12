@@ -31,25 +31,25 @@ export const resourceCategories: ResourceCategory[] = [
   {
     title: '教學講義',
     description: '各章節學習講義。',
-    driveUrl: 'https://drive.google.com/drive/folders/你的資料夾ID',
+    driveUrl: 'https://drive.google.com/drive/folders/1IpUJzBQLaeU7ZsyQYIcrA3n_YifoJkZw?usp=drive_link',
     emoji: '📖',
   },
   {
     title: '簡報教材',
     description: '課堂使用的簡報與補充教材。',
-    driveUrl: 'https://drive.google.com/drive/folders/你的資料夾ID',
+    driveUrl: 'https://drive.google.com/drive/folders/1pZ6Ugzp9y-YBta4I09ddkcHlGKQpOJzu?usp=drive_link',
     emoji: '🖥️',
   },
   {
     title: '學習資源',
     description: '各種學習資源整理。',
-    driveUrl: 'https://drive.google.com/drive/folders/你的資料夾ID',
+    driveUrl: 'https://drive.google.com/drive/folders/1wg_ku517N7Rzc__mfMndcjcHl26SloR2?usp=drive_link',
     emoji: '✏️',
   },
   {
     title: '科學新知',
     description: '時事科普與最新科學研究的補充閱讀資料。',
-    driveUrl: 'https://drive.google.com/drive/folders/你的資料夾ID',
+    driveUrl: 'https://drive.google.com/drive/folders/1Y7J3i0YI_ypG6wjO__VkuOy3PvWQ5zzc?usp=drive_link',
     emoji: '🔬',
   },
 ];
