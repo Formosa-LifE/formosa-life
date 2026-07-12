@@ -35,8 +35,8 @@ export const resourceCategories: ResourceCategory[] = [
     emoji: '📖',
   },
   {
-    title: '簡報教材',
-    description: '課堂使用的簡報與補充教材。',
+    title: '數位工具',
+    description: '自製的數位學習或教學工具',
     driveUrl: 'https://drive.google.com/drive/folders/1pZ6Ugzp9y-YBta4I09ddkcHlGKQpOJzu?usp=drive_link',
     emoji: '🖥️',
   },
@@ -68,7 +68,7 @@ export const essays: Essay[] = [
     date: '2026-07-12',
     title: '網站啟用：關於分享這件事',
     content:
-      '這個網站終於上線了。\n\n多年來累積的講義、簡報與試題整理，一直散落在雲端硬碟的各個角落。現在，它們有了一個家。\n\n每一個分享，都是一種傳承。希望這裡的資源，能陪伴更多好學的心靈。',
+      '這個網站終於上線了。\n\n多年來累積的講義、資源、工具整理，一直散落在雲端硬碟的各個角落。現在，它們有了一個家。\n\n每一個分享，都是一種傳承。希望這裡的資源，能陪伴更多好學的心靈。',
   },
 ];
 
@@ -79,7 +79,7 @@ export const about = {
   title: '關於 Formosa LifE',
   paragraphs: [
     '您好，我是 LifE。',
-    'Formosa LifE 是我用來分享教學資源與學習心得的園地。這裡有多年累積的教學講義、課堂簡報、學習資源整理，以及我對生活的隨筆。',
+    'Formosa LifE 是我用來分享教學資源與學習心得的園地。這裡有多年累積的教學講義、數位工具、學習資源整理，以及我對生活的隨筆。',
     '「分享」是這裡的核心精神——透過分享延續傳承。歡迎自由取用這些資源，也歡迎與我交流。',
   ],
 };
