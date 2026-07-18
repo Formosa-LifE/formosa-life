@@ -25,6 +25,7 @@ export interface ResourceCategory {
   description: string;
   driveUrl: string;
   emoji: string;
+  linkLabel?: string; // 卡片按鈕文字（不填則預設「前往雲端資料夾」）
 }
 
 export const resourceCategories: ResourceCategory[] = [
@@ -51,6 +52,20 @@ export const resourceCategories: ResourceCategory[] = [
     description: '時事科普與最新科學研究的補充閱讀資料。',
     driveUrl: 'https://drive.google.com/drive/folders/1Y7J3i0YI_ypG6wjO__VkuOy3PvWQ5zzc?usp=drive_link',
     emoji: '🔬',
+  },
+  {
+    title: '生命科學音典',
+    description: '高中生命科學英文名詞的臺灣雙語注音符號、Merriam-Webster 真人發音（單字與片語）與中英解釋，可依音節或主題查詢。',
+    driveUrl: '/tools/sci-life-dictionary.html',
+    emoji: '🗣️',
+    linkLabel: '開啟音典',
+  },
+  {
+    title: '雙母語音標組字查詢器',
+    description: '輸入任一英文單字，即時查 Merriam-Webster 音標，並自動以臺灣雙語注音符號堆疊成音節積木，附發音與字義。',
+    driveUrl: '/tools/word-builder.html',
+    emoji: '🧩',
+    linkLabel: '開啟查詢器',
   },
 ];
 

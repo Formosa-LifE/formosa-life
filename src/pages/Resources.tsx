@@ -22,7 +22,7 @@ export default function Resources() {
             </h2>
             <p className="text-[#6F6F6F] text-sm mt-3 leading-relaxed">{cat.description}</p>
             <p className="text-xs text-black mt-6 flex items-center gap-1">
-              前往雲端資料夾
+              {cat.linkLabel ?? '前往雲端資料夾'}
               <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
             </p>
           </a>

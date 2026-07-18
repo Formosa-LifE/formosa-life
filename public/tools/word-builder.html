@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>雙母語音標組字查詢器 (Word Builder)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+        .zhuyin-font { font-family: 'BiauKai', 'DFKai-SB', serif; }
+        .card-shadow { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .card-active { ring: 2px solid #3b82f6; }
+
+        /* 音節欄位共用樣式 */
+        .syllable-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.25rem;
+            padding: 0.25rem;
+            background-color: rgba(255, 255, 255, 0.6);
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            transition: all 0.2s;
+            max-width: 140px; /* 全域最大寬度 */
+        }
+        @media (min-width: 768px) {
+            .syllable-col {
+                gap: 0.5rem;
+                padding: 0.75rem;
+                border-radius: 1rem;
+                max-width: 160px;
+            }
+        }
+        .syllable-col:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+            border-color: #93c5fd;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        /* 修改點：針對長短單字應用不同精確縮放邏輯 */
+        /* 1. 短單字模式 (< 6 音節)：平均分配寬度，允許自動縮小以適應螢幕 */
+        .mode-short .syllable-col {
+            flex: 1 1 0%;
+            min-width: 0;
+        }
+        /* 2. 長單字模式 (>= 6 音節)：強制寬度為「畫面能塞下剛好 5 個」，多出部分橫向捲動 */
+        .mode-long .syllable-col {
+            /* (100% - 4個間距的總和) / 5 = 剛好塞滿 5 個音節的精確寬度 */
+            /* 手機版 gap-1.5 = 0.375rem, (0.375 * 4) / 5 = 0.3rem */
+            flex: 0 0 calc(20% - 0.3rem);
+            min-width: 0;
+        }
+        @media (min-width: 768px) {
+            .mode-long .syllable-col {
+                /* 平板以上 gap-3 = 0.75rem, (0.75 * 4) / 5 = 0.6rem */
+                flex: 0 0 calc(20% - 0.6rem);
+            }
+        }
+        /* 自訂橫向滾動條樣式 */
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+            -webkit-overflow-scrolling: touch;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 p-3 md:py-8 md:px-4 overflow-x-hidden">
+    <div class="w-full max-w-7xl mx-auto relative">
+
+        <!-- Header -->
+        <div class="bg-blue-600 rounded-2xl shadow-lg p-5 md:p-6 mb-4 md:mb-6 text-white flex flex-col md:flex-row items-center justify-between">
+            <div class="flex items-center w-full md:w-auto">
+                <div class="bg-white/20 p-3 rounded-full mr-4 flex-shrink-0">
+                    <i class="fa-solid fa-spell-check text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-bold">臺灣雙語注音來幫我</h1>
+                    <p class="text-blue-100 text-xs md:text-sm mt-1">輸入大學英文單字(如:dopamine)自動查詢臺灣雙語注音、發音與意義。《臺灣雙語注音符號》是由「臺灣雙母語學殿」研發並無償分享。</p>
+                </div>
+            </div>
+            <div class="text-center md:text-right mt-3 md:mt-0 flex flex-col items-center md:items-end gap-2">
+                <div class="text-xs text-blue-200 hidden md:block">
+                    <p>音節垂直堆疊模式</p>
+                    <p>串接 Merriam-Webster 字典</p>
+                </div>
+            </div>
+        </div>
+        <!-- Input Area -->
+        <div class="bg-white rounded-xl shadow-md p-4 md:p-6 mb-4 md:mb-8 border border-slate-200 relative z-10">
+            <div class="flex flex-col md:flex-row gap-3 relative">
+                <div class="relative flex-grow">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-keyboard text-gray-400"></i>
+                    </div>
+                    <input type="text" id="wordInput"
+                        class="block w-full pl-12 pr-12 py-3 md:py-4 bg-slate-50 border-2 border-slate-200 rounded-xl text-lg md:text-2xl font-mono focus:border-blue-500 focus:ring-0 transition-all outline-none text-slate-700 placeholder-gray-300"
+                        placeholder="請輸入英文單字: banana"
+                        autocomplete="off">
+                    <div class="absolute inset-y-0 right-0 pr-4 flex items-center">
+                        <button onclick="clearInput()" class="text-gray-400 hover:text-red-500 transition-colors" title="清除">
+                            <i class="fa-solid fa-xmark text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button onclick="handleSearch()" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 md:py-4 rounded-xl font-bold transition-colors shadow-sm flex items-center justify-center gap-2 w-full md:w-auto">
+                        <i id="searchBtnIcon" class="fa-solid fa-search"></i>
+                        <span>查詢</span>
+                    </button>
+                </div>
+            </div>
+            <!-- 單字發音與解釋區塊 (預設隱藏) -->
+            <div id="wordInfoArea" class="mt-4 hidden bg-blue-50/50 rounded-xl p-3 md:p-4 border border-blue-100 transition-all">
+                <div class="flex items-start gap-3 md:gap-4">
+                    <button id="playAudioBtn" onclick="playAudio()" class="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md transition-transform hover:scale-105" title="播放發音">
+                        <i class="fa-solid fa-volume-high text-lg md:text-xl"></i>
+                    </button>
+                    <div class="flex-grow">
+                        <h3 id="displayWord" class="text-lg md:text-xl font-bold text-slate-800 capitalize mb-1 flex items-baseline flex-wrap gap-2">
+                            <!-- JS 動態插入單字與音標 -->
+                        </h3>
+                        <ul id="definitionList" class="text-xs md:text-sm text-slate-600 list-disc list-inside space-y-1">
+                            <!-- JS 動態插入定義 -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3 flex flex-col sm:flex-row justify-between items-start sm:items-center px-1 md:px-2 gap-2">
+                <p class="text-[10px] md:text-xs text-gray-400 whitespace-nowrap flex-shrink-0">
+                    <i class="fa-solid fa-info-circle mr-1"></i> 顯示擷取的音標狀態
+                </p>
+                <div id="parseStatus" class="text-[10px] md:text-xs font-mono text-blue-500 font-bold min-h-[1.5em] flex flex-wrap gap-1 items-center"></div>
+            </div>
+        </div>
+        <!-- Word Display Area -->
+        <div class="bg-slate-50/50 rounded-2xl p-2 md:p-4 border border-dashed border-slate-300 flex flex-col min-h-[250px] md:min-h-[400px] mb-4 w-full overflow-hidden relative">
+
+            <!-- 將滾動屬性直接賦予 wordContainer 自身以獲得正確的內部尺寸計算 -->
+            <div id="wordContainer" class="mode-short flex flex-row flex-nowrap w-full overflow-x-auto custom-scrollbar pb-2 md:pb-4 justify-center items-start gap-1 md:gap-3 px-1 mx-auto">
+                <!-- Syllable Columns will be injected here -->
+
+                <!-- Default Welcome State -->
+                <div id="welcomeState" class="flex flex-col items-center justify-center text-slate-300 w-full pt-10 pb-6 flex-shrink-0">
+                    <i class="fa-solid fa-cubes-stacked text-5xl md:text-6xl mb-4 opacity-50"></i>
+                    <p class="text-lg md:text-xl">請輸入單字並點擊查詢</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="toast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg opacity-0 transition-opacity pointer-events-none flex items-center gap-2 z-50">
+            <i class="fa-solid fa-check-circle text-green-400"></i>
+            <span id="toastMsg">提示訊息</span>
+        </div>
+        <!-- 訪客計數器 (Visitor Badge) -->
+        <div class="w-full flex justify-center py-4">
+            <a href="https://visitorbadge.io/status?path=LieF">
+                <img src="https://api.visitorbadge.io/api/visitors?path=LieF&countColor=%23263759" alt="Visitor Badge" />
+            </a>
+        </div>
+    </div>
+    <script>
+        // ==========================================
+        // 後端中繼站 (GAS Web App) 網址
+        // ==========================================
+        const GAS_PROXY_URL = "https://script.google.com/macros/s/AKfycbypJZbGzIoNizanqHhvqxD3UEnXf4PaYiYgX_sKSikxZtH3SRvSnpUOJmAeOzcnpWppKw/exec";
+        // ==========================================
+        // 完整資料庫 (已刪除重複的 id: "72")
+        // ==========================================
+        const rawData = [
+            { id: "1", mw: "b", type: "頭子音", driveId: "1TI7gc0QGaIa9l5qn-Yu3ntoAG19AUown" },
+            { id: "2", mw: "p", type: "頭子音", driveId: "12DkhyEHnX9cO3oVC9xibsBGIvArhjKey" },
+            { id: "3", mw: "m", type: "頭子音", driveId: "16GBB53xh0RlJkgq3bunhp2v6D-vkx8Vd" },
+            { id: "4", mw: "f", type: "頭子音", driveId: "1ShDGwxjQ-eB1NZdC5rTY2gyJoP_s05fP" },
+            { id: "5", mw: "b", type: "尾子音", driveId: "1H7M7QkSe5yleNH2meC38xQH9ywaEs8nA" },
+            { id: "6", mw: "p", type: "尾子音", driveId: "1qqGN26DbnzexdV_e7k7u9Zxptn6oEjJQ" },
+            { id: "7", mw: "m", type: "尾子音", driveId: "1pzXqLdIsQxzO4uSXaRBeXMaoKBlrGJzh" },
+            { id: "8", mw: "f", type: "尾子音", driveId: "1yjZr1TKh09FSd8dLI2cjMEpkATHLVzDR" },
+            { id: "9", mw: "v", type: "尾子音", driveId: "1EHWAOIE16yXTsXJw2KdTU-DmB8a3X2sN" },
+            { id: "12", mw: "n", type: "頭子音", driveId: "1mVQ0t4gce-6i8QhKL79PLYA5W99b2f0v" },
+            { id: "14", mw: "d", type: "頭子音", driveId: "15usGENC2KY0mcVdawgniGNSIdpwWkU5O" },
+            { id: "15", mw: "t", type: "頭子音", driveId: "1bU38-oQE66vovWeOhwATqx8jp6Cqo7UJ" },
+            { id: "16", mw: "d", type: "尾子音", driveId: "1qJC1N5nsIZ4gpZUUrFQoIEbLBFzSAAjB" },
+            { id: "17", mw: "t", type: "尾子音", driveId: "18ZQ8icQPx9tfR97AIDqgC03xMigXWq5E" },
+            { id: "18", mw: "n", type: "尾子音", driveId: "1EcsVlhk6zbAjaH482lF4z26tFPYfE8X-" },
+            { id: "19", mw: "l", type: "頭子音", driveId: "1VnCgT-hdfBCobHFxIzRs8KAg5dL9foSl" },
+            { id: "21", mw: "g", type: "頭子音", driveId: "1Kw755rEHsJlG0yeFcKcORMRgnyS-RDAm" },
+            { id: "22", mw: "k", type: "頭子音", driveId: "1vd2Ulv5cDyYOgm_BJG-TFEeen8gHcewm" },
+            { id: "23", mw: "h", type: "頭子音", driveId: "1yemR9OIu7bDingGV3Zs9hd2Lbu3-uE6C" },
+            { id: "24", mw: "g", type: "尾子音", driveId: "1OI6WpJuHGAsOI8DRuogZv2UVg3pn2Nt3" },
+            { id: "25", mw: "k", type: "尾子音", driveId: "1MPOwKvbe8hg7fY2VgJ7yUyHeat0BYa2N" },
+            { id: "29", j: "頭子音", mw: "j", driveId: "1ZN0nt0XVkn5-jzdQQ0M18k4tAaR01UcN" },
+            { id: "30", mw: "ch", type: "頭子音", driveId: "1dKMaavtTo_rdexpgX_12NF8nAQvHdmDX" },
+            { id: "31", mw: "sh", type: "頭子音", driveId: "11EjMb3OeEOSOAReDqyiLmibZORea8Oah" },
+            { id: "38", mw: "s", type: "頭子音", driveId: "1tYZ1pe481D1yNS7enqdEEIVehqqNZLDk" },
+            { id: "39", mw: "z", type: "頭子音", driveId: "1hfXUgCQUR6Ajwjdifx87rJySqKkzoTyH" },
+            { id: "40", mw: "th", type: "頭子音", driveId: "1SpWQc-4A03COHutwChfbUKpYbNBI_AXv" },
+            { id: "41", mw: "t͟h", type: "頭子音", driveId: "10jcfyKxML_anpPP6jV9APBDGyHvo68FQ" },
+            { id: "43", mw: "l", type: "尾子音", driveId: "1Le5vGhSqSnQQA555lAy6zt2VEkxqTHYK" },
+            { id: "44", mw: "ə", type: "母音", driveId: "19q2-hW0b_di7taPh6gdEF011uQiESbMp" },
+            { id: "45", mw: "e", type: "母音", driveId: "1LCzEPsCklBwMnq-6WoNpmau6fyxHY5D4" },
+            { id: "46.1", mw: "ä", type: "母音", driveId: "1aUtx5t3zPuL6g0OBFWBLIX94aBPDcSp9" },
+            { id: "46.2", mw: "ȯ", type: "母音", driveId: "1aUtx5t3zPuL6g0OBFWBLIX94aBPDcSp9" },
+            { id: "47.1", mw: "r", type: "母音", driveId: "19JCWMKRejkotX6VWwYGLzzF3n6QxyGTz" },
+            { id: "47.2", mw: "ər", type: "母音", driveId: "19JCWMKRejkotX6VWwYGLzzF3n6QxyGTz" },
+            { id: "48", mw: "ā", type: "母音", driveId: "1GVF5Z8U4YPzxHtc2WiQYixWI2eeqHLvO" },
+            { id: "49", mw: "a", type: "母音", driveId: "1Y_gL4wFBD6P96fb4fFKewGjNe-zm933c" },
+            { id: "50", mw: "au̇", type: "母音", driveId: "1hKnBD6oebYk2OPwzo8nu6zjXpFM_nxOX" },
+            { id: "51", mw: "ī", type: "母音", driveId: "1etn9_rC-3FaKjGGPpXHSXP6J6NG5GNTz" },
+            { id: "58", mw: "ŋ", type: "尾子音", driveId: "1jwgRu31swONtUOOXEUd4JSldzq4DGSpC" },
+            { id: "59", mw: "y", type: "母音", driveId: "1qAX-RXK-7m2QDi8rNbBxefWPDplPcNJS" },
+            { id: "60-1", mw: "w", type: "頭子音", driveId: "1AubXnDCnZPYzgxGQRpSyoLP2at1escpk" },
+            { id: "60-2", mw: "ü", type: "母音", driveId: "1AubXnDCnZPYzgxGQRpSyoLP2at1escpk" },
+            { id: "62", mw: "i", type: "母音", driveId: "1fINS2xVVmm5nXEkVIo3AeBa9cPc5um1i" },
+            { id: "63", mw: "u̇", type: "母音", driveId: "1R2e9Om9ncPuis4GiiitrZaTjzdSCkqqs" },
+            { id: "64", mw: "ō", type: "母音", driveId: "1vqIXFLAhYMs4HJBtXmaRNqsjAdcp29jd" },
+            { id: "65", mw: "ü", type: "母音", driveId: "1CxHhR8h2gBoz5keitGis8kszEfK8XnoE" },
+            { id: "66", mw: "ē", type: "母音", driveId: "1GIaXfKuC-VI6b6_zazsnWC7PuS1P8BtN" },
+            { id: "67", mw: "ȯi", type: "母音", driveId: "1fngYXhf0v_nOHdGfuU6Ju8wzJoXWIiqg" },
+            { id: "68", mw: "r", type: "頭子音", driveId: "1JLaGvkzqK5mit61gyT3hhdTgqu9Cb-Aq" },
+            { id: "69", mw: "zh", type: "頭子音", driveId: "1YojxioL8pioIPNVughi1nQc-b5u1TJJh" },
+            { id: "70", mw: "dr", type: "頭子音", driveId: "1-f5_BlrV1H8Y8K4HOu6vaXiTyBvn_Fhs" },
+            { id: "71", mw: "tr", type: "頭子音", driveId: "1GbUGT-ypH4TahZVzk76-3EgbbmHgZg1e" },
+            { id: "73", mw: "sk", type: "頭子音", driveId: "1MuP8IH3LZXJ_XOXuI5SP1LQlUSUDzrEt" },
+            { id: "74", mw: "sp", type: "頭子音", driveId: "1Sks0y14MTau6jErzVhvpvi-XxxnEADUc" },
+            { id: "75", mw: "st", type: "頭子音", driveId: "1QDj8tsbOsvGdkHrCiWZmATAfsOazZMNn" },
+            { id: "76", mw: "str", type: "頭子音", driveId: "1S8qGXO6GL49AmZ16UNW8PTdYsyPEiEfV" }
+        ];
+        const groupedData = {};
+        rawData.forEach(item => {
+            if (!item.mw) return;
+            const key = item.mw.toLowerCase();
+            if (!groupedData[key]) groupedData[key] = [];
+            groupedData[key].push({
+                ...item,
+                img: `https://drive.google.com/thumbnail?id=${item.driveId}&sz=w800`
+            });
+        });
+        const sortedKeys = Object.keys(groupedData).sort((a, b) => b.length - a.length);
+        const wordInput = document.getElementById('wordInput');
+        const wordContainer = document.getElementById('wordContainer');
+        const parseStatus = document.getElementById('parseStatus');
+        const welcomeState = document.getElementById('welcomeState');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toastMsg');
+
+        let currentAudioUrl = null;
+        const audioPlayer = new Audio();
+        // 頁面初次載入時，強制將畫面定位到最上方，減少一開始卡在中間的機會
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                window.scrollTo(0, 0);
+            }, 100);
+        });
+        // 監聽 Enter 鍵
+        wordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+        // 初始化：保留讀取網址參數的功能
+        const params = new URLSearchParams(window.location.search);
+        const word = params.get('w');
+        if (word) {
+            wordInput.value = word;
+            setTimeout(handleSearch, 150);
+        }
+        // ==========================================
+        // 核心查詢 API 功能
+        // ==========================================
+        async function handleSearch() {
+            // 強制移除輸入框焦點，讓手機鍵盤順利收合
+            wordInput.blur();
+
+            // 將畫面溫和地滾動至最上方
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'smooth'
+            });
+            const word = wordInput.value.trim();
+            if (!word) {
+                clearInput();
+                return;
+            }
+            // UI 狀態切換至 Loading
+            wordInput.disabled = true;
+            const searchIcon = document.getElementById('searchBtnIcon');
+            searchIcon.classList.replace('fa-search', 'fa-spinner');
+            searchIcon.classList.add('fa-spin');
+            try {
+                const response = await fetch(`${GAS_PROXY_URL}?word=${encodeURIComponent(word)}`, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                const data = await response.json();
+                if (data.error) {
+                    console.error("GAS Server Error:", data.error);
+                    showToast('後端發生錯誤，請稍後再試', true);
+                    clearDisplay();
+                    return;
+                }
+                if (!data || data.length === 0 || typeof data[0] === 'string') {
+                    showToast('找不到此單字，請確認拼字', true);
+                    clearDisplay();
+                    return;
+                }
+                const entry = data[0];
+                const hwi = entry.hwi;
+
+                if (!hwi || !hwi.prs || hwi.prs.length === 0) {
+                    showToast('字典中無此單字的音標資訊', true);
+                    clearDisplay();
+                    return;
+                }
+                // 擷取所需資訊
+                const mwPhonetic = hwi.prs[0].mw;
+                const audioName = hwi.prs[0].sound ? hwi.prs[0].sound.audio : null;
+                const defs = entry.shortdef ? entry.shortdef.slice(0, 2) : []; // 取前兩個定義
+                // 更新 UI 資訊區塊
+                displayWordInfo(word, mwPhonetic, defs, audioName);
+                // 將音標傳入進行解析與渲染
+                processInput(mwPhonetic);
+            } catch (err) {
+                console.error("Fetch Error:", err);
+                showToast('網路連線或 GAS 伺服器發生錯誤', true);
+                clearDisplay();
+            } finally {
+                wordInput.disabled = false;
+                searchIcon.classList.remove('fa-spin');
+                searchIcon.classList.replace('fa-spinner', 'fa-search');
+            }
+        }
+        function displayWordInfo(word, mw, defs, audioName) {
+            const infoArea = document.getElementById('wordInfoArea');
+            const displayWord = document.getElementById('displayWord');
+            const defList = document.getElementById('definitionList');
+            const playBtn = document.getElementById('playAudioBtn');
+            infoArea.classList.remove('hidden');
+
+            displayWord.innerHTML = `${word} <span class="text-base text-blue-500 font-mono font-normal ml-2">/${mw}/</span>`;
+
+            if (defs.length > 0) {
+                defList.innerHTML = defs.map(d => `<li>${d}</li>`).join('');
+                defList.classList.remove('hidden');
+            } else {
+                defList.classList.add('hidden');
+            }
+            if (audioName) {
+                playBtn.classList.remove('hidden');
+
+                let subdir = audioName.charAt(0);
+                if (audioName.startsWith("bix")) subdir = "bix";
+                else if (audioName.startsWith("gg")) subdir = "gg";
+                else if (/^[^a-zA-Z]/.test(audioName)) subdir = "number";
+
+                currentAudioUrl = `https://media.merriam-webster.com/audio/prons/en/us/mp3/${subdir}/${audioName}.mp3`;
+            } else {
+                playBtn.classList.add('hidden');
+                currentAudioUrl = null;
+            }
+        }
+        function playAudio() {
+            if (currentAudioUrl) {
+                audioPlayer.src = currentAudioUrl;
+                audioPlayer.play().catch(e => showToast('播放音檔失敗', true));
+            }
+        }
+        function clearDisplay() {
+            wordContainer.innerHTML = '';
+            wordContainer.appendChild(welcomeState);
+            // 重設為預設短單字狀態
+            wordContainer.className = "mode-short flex flex-row flex-nowrap w-full overflow-x-auto custom-scrollbar pb-2 md:pb-4 justify-center items-start gap-1 md:gap-3 px-1 mx-auto";
+            parseStatus.innerHTML = '';
+            document.getElementById('wordInfoArea').classList.add('hidden');
+            currentAudioUrl = null;
+        }
+        function clearInput() {
+            wordInput.value = '';
+            clearDisplay();
+        }
+        function showToast(msg, isError = false) {
+            toastMsg.textContent = msg;
+            toast.classList.remove('opacity-0');
+            if (isError) {
+                toast.querySelector('i').classList.replace('fa-check-circle', 'fa-exclamation-circle');
+                toast.querySelector('i').classList.replace('text-green-400', 'text-red-400');
+            } else {
+                toast.querySelector('i').className = 'fa-solid fa-check-circle text-green-400';
+            }
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 3000);
+        }
+        // ==========================================
+        // 圖卡與音節解析邏輯
+        // ==========================================
+        function processInput(input) {
+            const cleanInput = input.replace(/\\/g, '').replace(/\//g, '').replace(/[ ·]/g, '-');
+            const syllableRawStrings = cleanInput.split('-');
+
+            let syllables = [];
+            let allTokens = [];
+            syllableRawStrings.forEach(sylStr => {
+                let tokenInput = sylStr.trim();
+                if(!tokenInput) return;
+                let tokens = [];
+                let remaining = tokenInput.toLowerCase();
+                remaining = remaining.replace(/'/g, "ˈ");
+                while (remaining.length > 0) {
+                    let matched = false;
+                    // 遇到重音符號或括號直接切出為獨立 Token
+                    if (remaining.startsWith("ˈ") || remaining.startsWith("ˌ") || remaining.startsWith("(") || remaining.startsWith(")")) {
+                        tokens.push(remaining[0]);
+                        remaining = remaining.slice(1);
+                        matched = true;
+                        continue;
+                    }
+                    for (const key of sortedKeys) {
+                        if (remaining.startsWith(key)) {
+                            tokens.push(key);
+                            remaining = remaining.slice(key.length);
+                            matched = true;
+                            break;
+                        }
+                    }
+
+                    if (!matched) {
+                        tokens.push(remaining[0]);
+                        remaining = remaining.slice(1);
+                    }
+                }
+
+                if (tokens.length > 0) {
+                    syllables.push(tokens);
+                    allTokens = allTokens.concat(tokens);
+                }
+            });
+            parseStatus.innerHTML = allTokens.map(t => {
+                if (t === 'ˈ' || t === 'ˌ') return `<span class="bg-yellow-100 text-yellow-800 px-1 rounded mx-0.5 font-serif font-bold">${t}</span>`;
+                if (t === '(' || t === ')') return `<span class="bg-slate-200 text-slate-700 px-1 rounded mx-0.5 font-serif font-bold">${t}</span>`;
+                return `<span class="bg-blue-100 text-blue-800 px-1 rounded mx-0.5">${t}</span>`;
+            }).join(' <span class="text-gray-300 mx-2">|</span> ');
+            renderSyllables(syllables);
+        }
+        function renderSyllables(syllables) {
+            wordContainer.innerHTML = '';
+            // 依據音節數量決定顯示模式
+            if (syllables.length >= 6) {
+                // 長單字：套用 mode-long，靠左對齊以便產生滾動條向右滑
+                wordContainer.className = "mode-long flex flex-row flex-nowrap w-full overflow-x-auto custom-scrollbar pb-2 md:pb-4 justify-start items-start gap-1.5 md:gap-3 px-2 mx-auto";
+            } else {
+                // 短單字：套用 mode-short，置中對齊並自動縮放維持在一個畫面內
+                wordContainer.className = "mode-short flex flex-row flex-nowrap w-full overflow-x-auto custom-scrollbar pb-2 md:pb-4 justify-center items-start gap-1 md:gap-3 px-1 mx-auto";
+            }
+            syllables.forEach((tokens, sylIndex) => {
+                const col = document.createElement('div');
+                col.className = "syllable-col";
+                // 新增：精確的母音與 'r' 規則判讀
+                let isTokenVowel = new Array(tokens.length).fill(false);
+                let lastValidIndex = -1;
+                // 階段 1：初步標記所有「可能是母音」的符號，並找出最後一個有效符號
+                tokens.forEach((t, idx) => {
+                    if (t !== 'ˈ' && t !== 'ˌ' && t !== '(' && t !== ')') {
+                        lastValidIndex = idx;
+                    }
+                    const variants = groupedData[t];
+                    if (variants && variants.some(v => v.type.includes('母'))) {
+                        isTokenVowel[idx] = true;
+                    }
+                });
+                // 階段 2：處理 'r' 的特殊規則
+                // 若 'r' 位於其他母音前，取消其母音標記，將其視為頭子音處理
+                tokens.forEach((t, idx) => {
+                    if (t.toLowerCase() === 'r' && isTokenVowel[idx]) {
+                        let hasVowelAfter = false;
+                        for (let j = idx + 1; j < tokens.length; j++) {
+                            if (isTokenVowel[j]) {
+                                hasVowelAfter = true;
+                                break;
+                            }
+                        }
+                        if (hasVowelAfter) {
+                            isTokenVowel[idx] = false; // 'r' 在此處作為頭子音
+                        }
+                    }
+                });
+                // 階段 3：確立該音節中第一個與最後一個母音的最終位置
+                let firstVowelIndex = -1;
+                let lastVowelIndex = -1;
+                isTokenVowel.forEach((isVowel, idx) => {
+                    if (isVowel) {
+                        if (firstVowelIndex === -1) firstVowelIndex = idx;
+                        lastVowelIndex = idx;
+                    }
+                });
+                tokens.forEach((token, index) => {
+                    // 若為重音符號
+                    if (token === 'ˈ' || token === 'ˌ') {
+                        col.appendChild(createStressCard(token));
+                        return;
+                    }
+                    // 若為括號 (通常代表音節/音素可省略)
+                    if (token === '(' || token === ')') {
+                        col.appendChild(createPunctuationCard(token));
+                        return;
+                    }
+                    const variants = groupedData[token];
+                    if (!variants) {
+                        col.appendChild(createUnknownCard(token));
+                        return;
+                    }
+                    let selectedIndex = 0;
+                    if (variants.length > 1) {
+                        // 使用已精確判斷的 isTokenVowel 陣列
+                        const isVowel = isTokenVowel[index];
+                        if (isVowel) {
+                            // 自身是母音，選擇母音變體
+                            selectedIndex = variants.findIndex(v => v.type.includes('母'));
+                        } else {
+                            // 自身是子音，根據其與母音的相對位置判斷
+                            if (firstVowelIndex !== -1) {
+                                if (index < firstVowelIndex) {
+                                    // 在母音前的子音 -> 頭子音
+                                    const priorityIdx = variants.findIndex(v => v.type.includes('頭') && parseInt(v.id) >= 70 && parseInt(v.id) <= 76);
+                                    if (priorityIdx !== -1) {
+                                        selectedIndex = priorityIdx;
+                                    } else {
+                                        const headIdx = variants.findIndex(v => v.type.includes('頭'));
+                                        if (headIdx !== -1) selectedIndex = headIdx;
+                                    }
+                                } else {
+                                    // 在母音後的子音 -> 尾子音
+                                    const tailIdx = variants.findIndex(v => v.type.includes('尾'));
+                                    if (tailIdx !== -1) {
+                                        selectedIndex = tailIdx;
+                                    } else {
+                                        // 找不到尾子音變體時的防呆機制
+                                        const headIdx = variants.findIndex(v => v.type.includes('頭'));
+                                        if (headIdx !== -1) selectedIndex = headIdx;
+                                    }
+                                }
+                            } else {
+                                // 防呆機制：如果音節中完全沒有母音
+                                if (index === lastValidIndex) {
+                                    const tailIdx = variants.findIndex(v => v.type.includes('尾'));
+                                    if (tailIdx !== -1) selectedIndex = tailIdx;
+                                    else {
+                                        const headIdx = variants.findIndex(v => v.type.includes('頭'));
+                                        if (headIdx !== -1) selectedIndex = headIdx;
+                                    }
+                                } else {
+                                    const priorityIdx = variants.findIndex(v => v.type.includes('頭') && parseInt(v.id) >= 70 && parseInt(v.id) <= 76);
+                                    if (priorityIdx !== -1) selectedIndex = priorityIdx;
+                                    else {
+                                        const headIdx = variants.findIndex(v => v.type.includes('頭'));
+                                        if (headIdx !== -1) selectedIndex = headIdx;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    const card = createCard(variants, selectedIndex, token);
+                    col.appendChild(card);
+                });
+                wordContainer.appendChild(col);
+            });
+        }
+        function createStressCard(token) {
+            const div = document.createElement('div');
+            div.className = "w-full h-8 md:h-12 flex items-center justify-center bg-yellow-50 rounded-lg border border-yellow-200 mb-1 flex-shrink-0";
+            const symbolHtml = token === 'ˈ'
+                ? `<span class="text-xl md:text-3xl font-serif font-bold text-slate-800">ˈ</span>`
+                : `<span class="text-xl md:text-3xl font-serif font-bold text-slate-600">ˌ</span>`;
+            div.innerHTML = `
+                ${symbolHtml}
+                <span class="text-[8px] md:text-xs text-gray-500 font-mono ml-1 md:ml-2">${token === 'ˈ' ? '主重音' : '次重音'}</span>
+            `;
+            return div;
+        }
+        function createPunctuationCard(token) {
+            const div = document.createElement('div');
+            // 特製一個小巧、低調的灰底括號區塊
+            div.className = "w-full h-8 md:h-12 flex items-center justify-center bg-slate-50 rounded-lg border border-slate-200 mb-1 flex-shrink-0 shadow-sm";
+            div.innerHTML = `
+                <span class="text-xl md:text-2xl font-mono font-bold text-slate-400">${token}</span>
+            `;
+            return div;
+        }
+        function createCard(variants, initialIndex, token) {
+            const container = document.createElement('div');
+            // 改為 w-full 讓其隨父元素 (.syllable-col) 一起等比例縮小
+            container.className = "relative group w-full flex-shrink-0";
+
+            let currentIndex = initialIndex;
+            function updateCardContent() {
+                const item = variants[currentIndex];
+                const hasMultiple = variants.length > 1;
+                let badgeClass = "bg-gray-100 text-gray-600";
+                if (item.type.includes('頭')) badgeClass = "bg-emerald-100 text-emerald-700";
+                if (item.type.includes('尾')) badgeClass = "bg-amber-100 text-amber-700";
+                if (item.type.includes('母')) badgeClass = "bg-rose-100 text-rose-700";
+                // 判斷是否為 70~76 之間較長的圖卡
+                const isLongCard = item.id && parseInt(item.id) >= 70 && parseInt(item.id) <= 76;
+                // 若為長圖卡，使用 h-auto 讓圖片自行撐開高度；一般圖卡則設定 aspect-[3/4] 確保長寬比等比例縮放
+                const cardHeightClass = isLongCard ? "h-auto" : "aspect-[3/4]";
+                const imgClass = isLongCard ? "w-full h-auto object-contain select-none" : "w-full h-full object-contain select-none";
+                container.innerHTML = `
+                    <div class="bg-white rounded-xl border-2 border-slate-200 overflow-hidden hover:border-blue-400 transition-all cursor-pointer card-shadow flex flex-col relative w-full ${cardHeightClass}"
+                         title="${hasMultiple ? '點擊切換變體 (頭/尾/母)' : ''}">
+
+                        <div class="px-1 md:px-2 py-1 bg-slate-50 border-b border-slate-100 flex justify-between items-center flex-shrink-0 min-w-0">
+                            <span class="font-bold text-slate-700 font-mono text-xs md:text-base truncate mr-1">/${token}/</span>
+                            <span class="text-[8px] md:text-[10px] px-1 py-0.5 rounded ${badgeClass} whitespace-nowrap flex-shrink-0">${item.type || '通用'}</span>
+                        </div>
+                        <div class="flex-grow relative bg-white flex items-center justify-center p-1 min-h-0 w-full">
+                            <img src="${item.img}"
+                                 class="${imgClass}"
+                                 alt="${token}"
+                                 referrerpolicy="no-referrer"
+                                 onerror="this.style.opacity=0.3; this.parentElement.innerHTML='<span class=\'text-[10px] md:text-xs text-red-300\'>無圖片</span>'">
+
+                            ${hasMultiple ? `
+                                <div class="absolute bottom-1 right-1 bg-black/10 text-slate-500 rounded-full w-4 h-4 md:w-5 md:h-5 flex items-center justify-center text-[8px] md:text-[10px] group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                                    <i class="fa-solid fa-rotate"></i>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            updateCardContent();
+            if (variants.length > 1) {
+                container.addEventListener('click', () => {
+                    currentIndex = (currentIndex + 1) % variants.length;
+                    updateCardContent();
+                });
+            }
+            return container;
+        }
+        function createUnknownCard(token) {
+            const div = document.createElement('div');
+            // 改為 w-full 及 aspect-[3/4] 依比例縮放
+            div.className = "w-full aspect-[3/4] bg-slate-50 rounded-xl border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 p-1";
+            div.innerHTML = `
+                <span class="text-lg md:text-2xl font-bold mb-1">?</span>
+                <span class="font-mono text-xs md:text-base truncate w-full text-center">/${token}/</span>
+                <span class="text-[8px] md:text-[10px] mt-1">未知</span>
+            `;
+            return div;
+        }
+    </script>
+</body>
+</html>
