@@ -4,7 +4,7 @@ import { site } from '../data/site';
 
 const links = [
   { to: '/', label: '首頁' },
-  { to: '/resources', label: '資源' },
+  { to: '/resources', label: '養分' },
   { to: '/essays', label: '隨筆' },
   { to: '/about', label: '關於' },
   { to: '/contact', label: '交流' },

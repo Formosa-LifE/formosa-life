@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import './index.css';
 import Home from './pages/Home';
 import Resources from './pages/Resources';
+import ResourceView from './pages/ResourceView';
 import Essays from './pages/Essays';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -24,6 +25,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/resources" element={<Resources />} />
+        <Route path="/resources/:slug" element={<ResourceView />} />
         <Route path="/essays" element={<Essays />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />

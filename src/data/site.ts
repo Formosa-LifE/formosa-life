@@ -26,32 +26,46 @@ export interface ResourceCategory {
   driveUrl: string;
   emoji: string;
   linkLabel?: string; // 卡片按鈕文字（不填則預設「前往雲端資料夾」）
+  slug?: string;      // 有填則卡片連到站內內嵌頁 /resources/<slug>
+  embedUrl?: string;  // 要內嵌的 Google 試算表「發佈到網路」網址（含 pubhtml?widget=true&headers=false）
 }
 
 export const resourceCategories: ResourceCategory[] = [
   {
     title: '教學講義',
-    description: '各章節學習講義。',
-    driveUrl: 'https://drive.google.com/drive/folders/1IpUJzBQLaeU7ZsyQYIcrA3n_YifoJkZw?usp=drive_link',
+    description: '各主題的學習講義。',
     emoji: '📖',
+    slug: 'handouts',
+    linkLabel: '開啟講義',
+    driveUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHPwp53sszrhSo56Lar8fwJQF66zN48RiiLgcA1fifmj50ihxJCFQDi4bKT3WLvVzju3wiDzeAFW32/pubhtml',
+    embedUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSHPwp53sszrhSo56Lar8fwJQF66zN48RiiLgcA1fifmj50ihxJCFQDi4bKT3WLvVzju3wiDzeAFW32/pubhtml?widget=true&headers=false',
   },
   {
     title: '數位工具',
-    description: '自製的數位學習或教學工具',
-    driveUrl: 'https://drive.google.com/drive/folders/1pZ6Ugzp9y-YBta4I09ddkcHlGKQpOJzu?usp=drive_link',
+    description: '數位學習或教學工具',
     emoji: '🖥️',
+    slug: 'tools',
+    linkLabel: '開啟資源',
+    driveUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTyrWaYZZbFGoepN6gyXM9l10LxZFXwG-jBgHTCb2cEgUGIsaIbYzSkc0G5t_jzgtgfP6O7UCoaqCoF/pubhtml',
+    embedUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTyrWaYZZbFGoepN6gyXM9l10LxZFXwG-jBgHTCb2cEgUGIsaIbYzSkc0G5t_jzgtgfP6O7UCoaqCoF/pubhtml?widget=true&headers=false',
   },
   {
     title: '學習資源',
-    description: '各種學習資源整理。',
-    driveUrl: 'https://drive.google.com/drive/folders/1wg_ku517N7Rzc__mfMndcjcHl26SloR2?usp=drive_link',
+    description: '各領域學習資源整理。',
     emoji: '✏️',
+    slug: 'learning',
+    linkLabel: '開啟資源',
+    driveUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT7XAC-vUrlc0sQvKgCMTme-4BTALHxwcvhDTJg2zvIU2LEN77rgaV8hQwIZXts-_sNyglTofo9BfU_/pubhtml',
+    embedUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT7XAC-vUrlc0sQvKgCMTme-4BTALHxwcvhDTJg2zvIU2LEN77rgaV8hQwIZXts-_sNyglTofo9BfU_/pubhtml?widget=true&headers=false',
   },
   {
     title: '科學新知',
-    description: '時事科普與最新科學研究的補充閱讀資料。',
-    driveUrl: 'https://drive.google.com/drive/folders/1Y7J3i0YI_ypG6wjO__VkuOy3PvWQ5zzc?usp=drive_link',
+    description: '時事科普的補充閱讀資料。',
     emoji: '🔬',
+    slug: 'news',
+    linkLabel: '開啟資源',
+    driveUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSN3hK6Aqig7mAkTg6QVtfzWJcXBbvb3F2f5mRE1wEl7s-nDQcqdezn9uqJ2__iHXYZhFTRsj2jssDa/pubhtml',
+    embedUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSN3hK6Aqig7mAkTg6QVtfzWJcXBbvb3F2f5mRE1wEl7s-nDQcqdezn9uqJ2__iHXYZhFTRsj2jssDa/pubhtml?widget=true&headers=false',
   },
   {
     title: '生命科學音典',
