@@ -75,6 +75,13 @@ export const resourceCategories: ResourceCategory[] = [
     linkLabel: '開啟音典',
   },
   {
+    title: '人體音典',
+    description: '骨骼、肌肉、內部構造與生殖器官一站查詢：點互動人體圖或清單，顯示臺灣雙語注音符號、Merriam-Webster 真人發音（正常／慢速）與 YouGlish。依「由外而內、由大到小」排列，含全身骨骼、頭骨／手骨／足骨、正背面肌肉、軀幹內臟與男女生殖等 14 種互動視角。',
+    driveUrl: '/tools/human-body-dictionary.html',
+    emoji: '🦴',
+    linkLabel: '開啟音典',
+  },
+  {
     title: '雙母語音標組字查詢器',
     description: '輸入任一英文單字，即時查 Merriam-Webster 音標，並自動以臺灣雙語注音符號堆疊成音節積木，附發音與字義。',
     driveUrl: '/tools/word-builder.html',
